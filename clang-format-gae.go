@@ -46,7 +46,7 @@ func main() {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
+	if r.Method != http.MethodPost {
 		http.Redirect(w, r, "https://github.com/octo/clang-format-gae/", http.StatusFound)
 		return
 	}
