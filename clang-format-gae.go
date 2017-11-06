@@ -51,17 +51,23 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := format(r.Context(), r.Body, w); err != nil {
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+
+	if err := format(ctx, r.Body, w); err != nil {
 		log.Printf("contextHandler: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		select {
+		case <-ctx.Done():
+			http.Error(w, "request timed out", http.StatusRequestTimeout)
+		default:
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 		return
 	}
 }
 
 func format(ctx context.Context, in io.Reader, out io.Writer) error {
-	ctx, cancel := context.WithTimeout(ctx, time.Second)
-	defer cancel()
-
 	cmd := exec.CommandContext(ctx, clangFormat, "-style=LLVM")
 	cmd.Stdin = in
 	cmd.Stdout = out
