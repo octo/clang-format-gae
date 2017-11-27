@@ -15,8 +15,10 @@ Once running, code files can be formatted with anything that can do a POST
 request. For example:
 
 ```bash
-curl --data-binary @input.c https://clang-format.appspot.com >output.c
+curl --data-binary '@-' https://format.collectd.org <input.c >output.c
 ```
+
+The script `contrib/format.sh` can be used to format files in-place.
 
 ## License
 
