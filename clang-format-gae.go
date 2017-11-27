@@ -32,8 +32,8 @@ func main() {
 		log.Fatalf("trace.NewClient(): %v", err)
 	}
 
-	// sample 100% of requests, but at most 1 per second.
-	policy, err := trace.NewLimitedSampler(1.0, 1.0)
+	// sample 100% of requests, but at most 5 per second.
+	policy, err := trace.NewLimitedSampler(1.0, 5.0)
 	if err != nil {
 		log.Fatalf("NewLimitedSampler(): %v", err)
 	}
