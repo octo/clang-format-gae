@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/trace"
+	"github.com/octo/retry"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
 )
@@ -39,8 +40,19 @@ func main() {
 	}
 	traceClient.SetSamplingPolicy(policy)
 
+	var h http.Handler
+	h = http.HandlerFunc(handler)
+	h = &retry.BudgetHandler{
+		Handler: h,
+		Budget: retry.Budget{
+			Rate:  2.0,
+			Ratio: 0.1,
+		},
+	}
+	h = traceClient.HTTPHandler(h)
+
 	http.HandleFunc("/_ah/health", healthCheckHandler)
-	http.Handle("/", traceClient.HTTPHandler(http.HandlerFunc(handler)))
+	http.Handle("/", h)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
