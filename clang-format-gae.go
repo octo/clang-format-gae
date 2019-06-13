@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"os/exec"
 	"time"
 
@@ -54,7 +55,12 @@ func main() {
 	http.HandleFunc("/_ah/health", healthCheckHandler)
 	http.Handle("/", h)
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	port := "8080"
+	if p := os.Getenv("PORT"); p != "" {
+		port = p
+	}
+
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
