@@ -1,0 +1,13 @@
+steps:
+  # build the container image
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/clang-format/clang-format-run', '.']
+  # push the container image to Container Registry
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'gcr.io/clang-format/clang-format-run']
+  # Deploy container image to Cloud Run
+- name: 'gcr.io/cloud-builders/gcloud'
+  args: ['beta', 'run', 'deploy', 'clang-format-run', '--image', 'gcr.io/clang-format/clang-format-run', '--region', 'us-central1']
+images:
+- gcr.io/clang-format/clang-format-run
+
