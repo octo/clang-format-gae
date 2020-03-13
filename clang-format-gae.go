@@ -11,10 +11,11 @@ import (
 	"os/exec"
 	"time"
 
-	"cloud.google.com/go/trace"
+	"contrib.go.opencensus.io/exporter/stackdriver"
+	"contrib.go.opencensus.io/exporter/stackdriver/propagation"
 	"github.com/octo/retry"
-	"golang.org/x/oauth2/google"
-	"google.golang.org/api/option"
+	"go.opencensus.io/plugin/ochttp"
+	"go.opencensus.io/trace"
 )
 
 const (
@@ -22,27 +23,25 @@ const (
 )
 
 func main() {
-	ctx := context.Background()
-
-	creds, err := google.FindDefaultCredentials(ctx, trace.ScopeTraceAppend)
+	// Create and register a OpenCensus Stackdriver Trace exporter.
+	exporter, err := stackdriver.NewExporter(stackdriver.Options{
+		ProjectID: os.Getenv("GOOGLE_CLOUD_PROJECT"),
+	})
 	if err != nil {
-		log.Fatalf("FindDefaultCredentials(): %v", err)
+		log.Fatalf("stackdriver.NewExporter(): %v", err)
 	}
-
-	traceClient, err := trace.NewClient(ctx, creds.ProjectID, option.WithTokenSource(creds.TokenSource))
-	if err != nil {
-		log.Fatalf("trace.NewClient(): %v", err)
-	}
-
-	// sample 100% of requests, but at most 5 per second.
-	policy, err := trace.NewLimitedSampler(1.0, 5.0)
-	if err != nil {
-		log.Fatalf("NewLimitedSampler(): %v", err)
-	}
-	traceClient.SetSamplingPolicy(policy)
+	trace.RegisterExporter(exporter)
+	trace.ApplyConfig(trace.Config{
+		DefaultSampler: trace.AlwaysSample(),
+	})
 
 	var h http.Handler
-	h = http.HandlerFunc(handler)
+	h = &ochttp.Handler{
+		Propagation:      &propagation.HTTPFormat{},
+		Handler:          http.HandlerFunc(handler),
+		IsPublicEndpoint: true,
+	}
+
 	h = &retry.BudgetHandler{
 		Handler: h,
 		Budget: retry.Budget{
@@ -50,7 +49,6 @@ func main() {
 			Ratio: 0.1,
 		},
 	}
-	h = traceClient.HTTPHandler(h)
 
 	http.HandleFunc("/_ah/health", healthCheckHandler)
 	http.Handle("/", h)
@@ -93,8 +91,8 @@ func format(ctx context.Context, in io.Reader, out io.Writer) error {
 	errbuf := &bytes.Buffer{}
 	cmd.Stderr = errbuf
 
-	span := trace.FromContext(ctx).NewChild(clangFormat)
-	defer span.Finish()
+	ctx, span := trace.StartSpan(ctx, clangFormat)
+	defer span.End()
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("clang-format: %v\nSTDERR: %s", err, errbuf)
