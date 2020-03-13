@@ -7,7 +7,7 @@ steps:
   args: ['push', 'gcr.io/clang-format/clang-format-run']
   # Deploy container image to Cloud Run
 - name: 'gcr.io/cloud-builders/gcloud'
-  args: ['beta', 'run', 'deploy', 'clang-format-run', '--image', 'gcr.io/clang-format/clang-format-run', '--region', 'us-central1']
+  args: ['run', 'deploy', 'clang-format-run', '--image', 'gcr.io/clang-format/clang-format-run', '--platform', 'managed', '--region', 'us-central1']
 images:
 - gcr.io/clang-format/clang-format-run
 
